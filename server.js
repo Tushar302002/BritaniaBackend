@@ -63,21 +63,34 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       text
     });
 
-    res.json(data);
+    const arLink = `https://192.168.1.42:5174/?arId=${data._id}`;
+
+    res.json({
+      id: data._id,
+      link: arLink
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Upload failed" });
   }
 });
 
-app.get("/api/data", async (req, res) => {
+
+app.get("/api/data/:id", async (req, res) => {
   try {
-    const data = await ArData.findOne().sort({ createdAt: -1 });
+    const data = await ArData.findById(req.params.id);
+
+    if (!data) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch data" });
+    res.status(500).json({ message: "Invalid ID" });
   }
 });
+
 
 /* -------------------- Health Check -------------------- */
 
