@@ -2,92 +2,45 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 
-const API_KEY = process.env.OPENAI_API_KEY
-
 const openai = new OpenAI({
-  apiKey: API_KEY,
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-export async function generateImage({
-  prompt,
-  inputImagePath = null
-}) {
-
-  /* Step-1  */
-
-  //   Generate JSON:
-  // {
-  // "title": "Creative museum title (max 60 chars)",
-  // "description": "Artistic description (max 100 chars)",
-  // "imagePrompt": "Detailed DALL-E prompt with artistic style, lighting, composition"
-  // }`
+// 🔵 SAME service used by Web + WhatsApp
+export async function generateImage({ prompt, inputImagePath = null }) {
+  // Step 1: Refine prompt using GPT
   const chatResponse = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      {
-        role: "system",
-        content: "You are a museum curator. Respond ONLY with valid JSON."
-      },
-      {
-        role: "user",
-        content: `Create metadata for: "${prompt}"`
-      }
+      { role: "system", content: "You are a museum curator. Respond ONLY with valid JSON." },
+      { role: "user", content: `Create metadata for: "${prompt}"` }
     ],
-    response_format: { type: "json_object" },
-    temperature: 0.8
+    response_format: { type: "json_object" }
   });
 
-  let customuserRoleChatResponse = JSON.parse(chatResponse.choices[0].message.content);
-  let customuserRolePrompt = customuserRoleChatResponse?.description;
-  // console.log(customuserRolePrompt)
+  const meta = JSON.parse(chatResponse.choices[0].message.content);
 
+  // Step 2: Generate image
+  const result = await openai.images.generate({
+    model: "dall-e-3",
+    prompt: meta.description || prompt,
+    size: "1024x1024",
+    response_format: "b64_json"
+  });
 
-  /* Step-2  */
+  const imageUrl = saveBase64Image(result.data[0].b64_json);
 
-  let result;
-  if (inputImagePath) {
-    // Image + prompt → image
-    result = await openai.images.generate({
-      model: "dall-e-3",
-      // prompt,
-      prompt: customuserRolePrompt ? customuserRolePrompt : prompt,
-      size: "1024x1024",
-      response_format: "b64_json"
-    });
-
-  } else {
-    // Prompt → image
-    result = await openai.images.generate({
-      model: "dall-e-3",
-      // prompt,
-      prompt: customuserRolePrompt ? customuserRolePrompt : prompt,
-      size: "1024x1024",
-      response_format: "b64_json"
-    });
-  }
-
-  // console.log(result.data[0].revised_prompt)
-  let generatedImageUrl = await saveBase64Image(result.data[0].b64_json);
   return {
     aiPrompt: result.data[0].revised_prompt,
-    generatedImageUrl
-  }
-
+    generatedImageUrl: imageUrl
+  };
 }
 
+function saveBase64Image(base64, folder = "uploads/ai") {
+  if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 
+  const file = `${Date.now()}.png`;
+  fs.writeFileSync(path.join(folder, file), Buffer.from(base64, "base64"));
 
-function saveBase64Image(base64Data, folder = "uploads/ai") {
-  if (!fs.existsSync(folder)) {
-    fs.mkdirSync(folder, { recursive: true });
-  }
-
-  const fileName = `${Date.now()}.png`;
-  const filePath = path.join(folder, fileName);
-
-  const buffer = Buffer.from(base64Data, "base64");
-  fs.writeFileSync(filePath, buffer);
-
-  return `/uploads/ai/${fileName}`;
+  return `/uploads/ai/${file}`;
 }
-

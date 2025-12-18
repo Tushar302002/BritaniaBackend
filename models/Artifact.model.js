@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const artifactSchema = new mongoose.Schema({
   source: {
-    type: String, // "whatsapp" | "web" | "postman"
+    type: String, // "web" | "whatsapp"
     default: "web"
   },
 
@@ -12,7 +12,7 @@ const artifactSchema = new mongoose.Schema({
   },
 
   userImageUrl: {
-    type: String, // optional
+    type: String,
     default: null
   },
 
@@ -21,15 +21,19 @@ const artifactSchema = new mongoose.Schema({
     required: true
   },
 
-  aiPrompt:{
-    type:String,
-    default:null
+  aiPrompt: {
+    type: String,
+    default: null
   },
 
   aiProvider: {
-    type: String, // "openai" | "stability" | "midjourney"
+    type: String,
     required: true
   },
+
+  // 🟡 OPTIONAL (future analytics)
+  // promptId: String,
+  // userId: String, // whatsapp number
 
   createdAt: {
     type: Date,
