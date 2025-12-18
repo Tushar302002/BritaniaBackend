@@ -15,6 +15,13 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
+
+app.use((req, res, next) => {
+  req.startTime = Date.now();
+  console.log(`➡️ Icnoming request:-  ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
@@ -28,7 +35,7 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected");
     app.listen(PORT, () =>
-      console.log(`🚀 Server running on http://localhost:${PORT}`)
+      console.log(`🚀 Server running `)
     );
   })
   .catch(console.error);
@@ -78,7 +85,20 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-
+app.get("/api/artifacts/:id", async (req, res) => {
+  try {
+    const data = await Artifact.findById(req.params.id);
+ 
+    if (!data) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+ 
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: "Invalid ID" });
+  }
+});
+ 
 
 
 /* =========================
