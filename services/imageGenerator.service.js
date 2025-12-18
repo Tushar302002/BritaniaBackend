@@ -42,5 +42,8 @@ function saveBase64Image(base64, folder = "uploads/ai") {
   const file = `${Date.now()}.png`;
   fs.writeFileSync(path.join(folder, file), Buffer.from(base64, "base64"));
 
+  const filePath = path.join(folder, file);
+  console.log("File exists:", fs.existsSync(filePath));
+
   return `/uploads/ai/${file}`;
 }
