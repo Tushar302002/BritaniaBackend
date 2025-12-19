@@ -103,6 +103,20 @@ app.post("/webhook", (req, res) => {
   })();
 });
  
+
+app.get("/api/artifacts/:id", async (req, res) => {
+  try {
+    const data = await Artifact.findById(req.params.id);
+ 
+    if (!data) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+ 
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: "Invalid ID" });
+  }
+});
  
 // ================= WHATSAPP SEND =================
 async function sendWhatsApp(payload) {
