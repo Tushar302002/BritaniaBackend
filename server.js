@@ -152,20 +152,101 @@ async function sendWelcomeAndCategories(to) {
 // ================= CATEGORY OPTIONS =================
 const categoryOptions = {
   CAT_SELFCARE: {
-    text: "Choose one habit 👇",
+    text: "💛 Self-Care — choose one habit 👇",
     options: [
-      { id: "OPT_WATER", title: "💧 Drink Water", description: "Drink a full glass of water" },
-      { id: "OPT_NO_SCREEN", title: "📵 No Screens", description: "Avoid screens before sleep" }
+      {
+        id: "OPT_WATER",
+        title: "💧 Drink Water",
+        description: "Drink a full glass"
+      },
+      {
+        id: "OPT_NO_SCREEN",
+        title: "📵 No Screens",
+        description: "Avoid screens before sleep"
+      },
+      {
+        id: "OPT_JOURNAL",
+        title: "✍️ Journal",
+        description: "Write one journal line"
+      },
+      {
+        id: "OPT_HOBBY",
+        title: "🎨 Hobby Time",
+        description: "5 minutes hobby time"
+      }
     ]
   },
+
   CAT_FITNESS: {
-    text: "Choose one habit 👇",
+    text: "🏃 Fitness — choose one habit 👇",
     options: [
-      { id: "OPT_WALK", title: "🚶 Walk", description: "10-minute walk" },
-      { id: "OPT_PUSHUPS", title: "💪 Push-ups", description: "10 push-ups" }
+      {
+        id: "OPT_WALK",
+        title: "🚶 Walk",
+        description: "10-minute walk"
+      },
+      {
+        id: "OPT_PUSHUPS",
+        title: "💪 Push-ups",
+        description: "10 push-ups"
+      },
+      {
+        id: "OPT_STRETCH",
+        title: "🤸 Stretch",
+        description: "Light stretching"
+      }
+    ]
+  },
+
+  CAT_MINDFUL: {
+    text: "🧠 Mindfulness — choose one 👇",
+    options: [
+      {
+        id: "OPT_BREATH",
+        title: "🌬️ Breathing",
+        description: "2-min deep breathing"
+      },
+      {
+        id: "OPT_GRAT",
+        title: "🙏 Gratitude",
+        description: "Think one good thing"
+      }
+    ]
+  },
+
+  CAT_PRODUCT: {
+    text: "🚀 Productivity — choose one 👇",
+    options: [
+      {
+        id: "OPT_TODO",
+        title: "📝 To-Do",
+        description: "Write top task"
+      },
+      {
+        id: "OPT_FOCUS",
+        title: "⏱️ Focus",
+        description: "10-min focus session"
+      }
+    ]
+  },
+
+  CAT_NUTRITION: {
+    text: "🥗 Nutrition — choose one 👇",
+    options: [
+      {
+        id: "OPT_FRUIT",
+        title: "🍎 Eat Fruit",
+        description: "Eat one fruit"
+      },
+      {
+        id: "OPT_WATER2",
+        title: "💧 Hydration",
+        description: "Drink extra water"
+      }
     ]
   }
 };
+
 
 async function sendCategoryOptions(to, categoryId) {
   const data = categoryOptions[categoryId];
@@ -190,9 +271,23 @@ async function sendCategoryOptions(to, categoryId) {
 const optionPromptMap = {
   OPT_WATER: "Drinking a full glass of water",
   OPT_NO_SCREEN: "Avoiding screens before sleep",
+  OPT_JOURNAL: "Writing in a journal",
+  OPT_HOBBY: "Doing a creative hobby",
+
   OPT_WALK: "Walking for fitness",
-  OPT_PUSHUPS: "Doing push-ups"
+  OPT_PUSHUPS: "Doing push-ups",
+  OPT_STRETCH: "Stretching exercise",
+
+  OPT_BREATH: "Practicing deep breathing",
+  OPT_GRAT: "Feeling gratitude",
+
+  OPT_TODO: "Planning tasks",
+  OPT_FOCUS: "Focused work session",
+
+  OPT_FRUIT: "Eating a fruit",
+  OPT_WATER2: "Staying hydrated"
 };
+
 
 async function handleOptionSelection(user, optionId) {
   const prompt = optionPromptMap[optionId];
