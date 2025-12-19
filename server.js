@@ -3,7 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import cors from "cors";
-import FormData from "form-data";
+
 
 import Artifact from "./models/Artifact.model.js";
 import { generateImage } from "./services/imageGenerator.service.js";
@@ -216,10 +216,11 @@ async function uploadImageToWhatsApp(base64) {
   const buffer = Buffer.from(base64, "base64");
 
   const form = new FormData();
-  form.append("file", buffer, {
-    filename: "image.png",
-    contentType: "image/png"
-  });
+  form.append(
+    "file",
+    new Blob([buffer], { type: "image/png" }),
+    "image.png"
+  );
   form.append("messaging_product", "whatsapp");
 
   const res = await fetch(
@@ -228,6 +229,7 @@ async function uploadImageToWhatsApp(base64) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${WHATSAPP_TOKEN}`
+        // ❌ Content-Type mat set karo (FormData khud karega)
       },
       body: form
     }
@@ -237,8 +239,9 @@ async function uploadImageToWhatsApp(base64) {
 
   if (!data.id) {
     console.error("❌ Media upload failed:", data);
-    throw new Error("Media upload failed");
+    throw new Error("WhatsApp media upload failed");
   }
 
   return data.id;
 }
+
