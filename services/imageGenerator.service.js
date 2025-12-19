@@ -26,12 +26,14 @@ export async function generateImage({ prompt }) {
 
   // Step 2: Generate image (BASE64)
   const result = await openai.images.generate({
-    model: "gpt-image-1",
+    model: "dall-e-3",
     prompt: meta.description || prompt,
-    size: "1024x1024"
+    size: "1024x1024",
+    response_format: "b64_json"
   });
 
   const base64 = result.data[0].b64_json;
+
 
   if (!base64) {
     throw new Error("Image generation failed: no base64 returned");
