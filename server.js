@@ -106,7 +106,7 @@ app.post("/webhook", (req, res) => {
 
 // ================= WHATSAPP SEND =================
 async function sendWhatsApp(payload) {
-  await fetch(
+  const res = await fetch(
     `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
     {
       method: "POST",
@@ -117,7 +117,17 @@ async function sendWhatsApp(payload) {
       body: JSON.stringify(payload)
     }
   );
+
+  const data = await res.json();
+  console.log("📤 WHATSAPP SEND RESPONSE:", data);
+
+  if (!res.ok) {
+    throw new Error(
+      `WhatsApp send failed: ${JSON.stringify(data)}`
+    );
+  }
 }
+
 
 // ================= STEP 1 =================
 async function sendWelcomeAndCategories(to) {
