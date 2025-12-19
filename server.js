@@ -37,6 +37,23 @@ mongoose
   })
   .catch(console.error);
 
+
+// ================= REST APIs =================
+app.get("/api/artifacts/:id", async (req, res) => {
+  try {
+    const data = await Artifact.findById(req.params.id);
+
+    if (!data) {
+      return res.status(404).json({ message: "Artifact not found" });
+    }
+
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ message: "Invalid artifact ID" });
+  }
+});
+
+
 // ================= WEBHOOK VERIFY =================
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
