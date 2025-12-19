@@ -6,8 +6,6 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 
-const processedMessageIds = new Set();
-
 import Artifact from "./models/Artifact.model.js";
 import { generateImage } from "./services/imageGenerator.service.js";
 
@@ -19,11 +17,14 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
+// ================= GLOBAL =================
+const processedMessageIds = new Set();
+
 // ================= MIDDLEWARE =================
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
-app.use("/uploads", express.static("uploads")); // ✅ IMPORTANT
+app.use("/uploads", express.static("uploads"));
 
 // ================= DATABASE =================
 mongoose
@@ -59,18 +60,17 @@ app.post("/webhook", (req, res) => {
 
   // 🔒 DEDUPLICATION
   if (processedMessageIds.has(messageId)) {
-    console.log("⏭️ Duplicate message ignored:", messageId);
+    console.log("⏭️ Duplicate ignored:", messageId);
     return res.sendStatus(200);
   }
 
   processedMessageIds.add(messageId);
+  setTimeout(() => processedMessageIds.delete(messageId), 5 * 60 * 1000);
 
-  setTimeout(() => {
-    processedMessageIds.delete(messageId);
-  }, 5 * 60 * 1000);
+  // ✅ ACK IMMEDIATELY
+  res.sendStatus(200);
 
-  res.sendStatus(200); // ✅ ACK IMMEDIATELY
-
+  // 🚀 BACKGROUND PROCESSING
   (async () => {
     try {
       const from = message.from;
@@ -78,10 +78,12 @@ app.post("/webhook", (req, res) => {
 
       console.log("📩 MESSAGE:", JSON.stringify(message, null, 2));
 
+      // STEP 1 — HI / START
       if (["hi", "hello", "start"].includes(text)) {
         await sendWelcomeAndCategories(from);
       }
 
+      // STEP 2 / 3 — LIST SELECTION
       if (message.interactive?.list_reply) {
         const id = message.interactive.list_reply.id;
         console.log("🟡 LIST REPLY:", id);
@@ -122,6 +124,120 @@ async function sendWhatsApp(payload) {
   }
 }
 
+// ================= STEP 1 =================
+async function sendWelcomeAndCategories(to) {
+  await sendWhatsApp({
+    messaging_product: "whatsapp",
+    to,
+    type: "interactive",
+    interactive: {
+      type: "list",
+      body: {
+        text:
+          "👋 Welcome to *The Good Choice Archive*\n\n" +
+          "What kind of good choice are you making today?"
+      },
+      action: {
+        button: "Choose Category",
+        sections: [
+          {
+            title: "Categories",
+            rows: [
+              { id: "CAT_SELFCARE", title: "🧘 Self-Care" },
+              { id: "CAT_FITNESS", title: "🏃 Fitness" },
+              { id: "CAT_MINDFUL", title: "🧠 Mindfulness" },
+              { id: "CAT_PRODUCT", title: "🚀 Productivity" },
+              { id: "CAT_NUTRITION", title: "🥗 Nutrition" }
+            ]
+          }
+        ]
+      }
+    }
+  });
+}
+
+// ================= CATEGORY OPTIONS =================
+const categoryOptions = {
+  CAT_SELFCARE: {
+    text: "💛 Self-Care — choose one habit 👇",
+    options: [
+      { id: "OPT_WATER", title: "💧 Drink Water", description: "Drink a full glass" },
+      { id: "OPT_NO_SCREEN", title: "📵 No Screens", description: "Avoid screens before sleep" },
+      { id: "OPT_JOURNAL", title: "✍️ Journal", description: "Write one line" },
+      { id: "OPT_HOBBY", title: "🎨 Hobby Time", description: "5 minutes hobby" }
+    ]
+  },
+  CAT_FITNESS: {
+    text: "🏃 Fitness — choose one habit 👇",
+    options: [
+      { id: "OPT_WALK", title: "🚶 Walk", description: "10-minute walk" },
+      { id: "OPT_PUSHUPS", title: "💪 Push-ups", description: "10 push-ups" },
+      { id: "OPT_STRETCH", title: "🤸 Stretch", description: "Light stretch" }
+    ]
+  },
+  CAT_MINDFUL: {
+    text: "🧠 Mindfulness — choose one 👇",
+    options: [
+      { id: "OPT_BREATH", title: "🌬️ Breathing", description: "2-min breathing" },
+      { id: "OPT_GRAT", title: "🙏 Gratitude", description: "One thankful thought" }
+    ]
+  },
+  CAT_PRODUCT: {
+    text: "🚀 Productivity — choose one 👇",
+    options: [
+      { id: "OPT_TODO", title: "📝 To-Do", description: "Write top task" },
+      { id: "OPT_FOCUS", title: "⏱️ Focus", description: "10-min focus" }
+    ]
+  },
+  CAT_NUTRITION: {
+    text: "🥗 Nutrition — choose one 👇",
+    options: [
+      { id: "OPT_FRUIT", title: "🍎 Eat Fruit", description: "Eat one fruit" },
+      { id: "OPT_WATER2", title: "💧 Hydration", description: "Drink water" }
+    ]
+  }
+};
+
+async function sendCategoryOptions(to, categoryId) {
+  const data = categoryOptions[categoryId];
+  if (!data) return;
+
+  await sendWhatsApp({
+    messaging_product: "whatsapp",
+    to,
+    type: "interactive",
+    interactive: {
+      type: "list",
+      body: { text: data.text },
+      action: {
+        button: "Choose Habit",
+        sections: [{ title: "Habits", rows: data.options }]
+      }
+    }
+  });
+}
+
+// ================= OPTION PROMPTS =================
+const optionPromptMap = {
+  OPT_WATER: "Drinking a full glass of water",
+  OPT_NO_SCREEN: "Avoiding screens before sleep",
+  OPT_JOURNAL: "Writing in a journal",
+  OPT_HOBBY: "Doing a creative hobby",
+
+  OPT_WALK: "Walking for fitness",
+  OPT_PUSHUPS: "Doing push-ups",
+  OPT_STRETCH: "Stretching exercise",
+
+  OPT_BREATH: "Practicing deep breathing",
+  OPT_GRAT: "Feeling gratitude",
+
+  OPT_TODO: "Planning tasks",
+  OPT_FOCUS: "Focused work session",
+
+  OPT_FRUIT: "Eating a fruit",
+  OPT_WATER2: "Staying hydrated"
+};
+
 // ================= SAVE IMAGE (OLD FORMAT) =================
 function saveBase64Image(base64Data, folder = "uploads/ai") {
   if (!fs.existsSync(folder)) {
@@ -132,11 +248,10 @@ function saveBase64Image(base64Data, folder = "uploads/ai") {
   const filePath = path.join(folder, fileName);
 
   fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"));
-
   return `/uploads/ai/${fileName}`;
 }
 
-// ================= MEDIA UPLOAD =================
+// ================= MEDIA UPLOAD (NODE BUILT-IN) =================
 async function uploadImageToWhatsApp(base64) {
   const buffer = Buffer.from(base64, "base64");
 
@@ -154,17 +269,14 @@ async function uploadImageToWhatsApp(base64) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${WHATSAPP_TOKEN}`
+        // ❌ Content-Type mat set karo
       },
       body: form
     }
   );
 
   const data = await res.json();
-
-  if (!data.id) {
-    console.error("❌ Media upload failed:", data);
-    throw new Error("WhatsApp media upload failed");
-  }
+  if (!data.id) throw new Error("WhatsApp media upload failed");
 
   return data.id;
 }
@@ -178,10 +290,7 @@ async function handleOptionSelection(user, optionId) {
 
   const aiData = await generateImage({ prompt });
 
-  // ✅ SAVE IMAGE (OLD WAY)
   const generatedImageUrl = saveBase64Image(aiData.base64);
-
-  // ✅ SEND IMAGE (CURRENT WAY)
   const mediaId = await uploadImageToWhatsApp(aiData.base64);
 
   const artifact = await Artifact.create({
