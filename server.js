@@ -3,6 +3,8 @@ import express from "express";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import cors from "cors";
+const processedMessageIds = new Set();
+
 
 
 import Artifact from "./models/Artifact.model.js";
@@ -45,43 +47,62 @@ app.get("/webhook", (req, res) => {
 });
 
 // ================= WEBHOOK RECEIVE =================
-app.post("/webhook", async (req, res) => {
-  try {
-    const message =
-      req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+app.post("/webhook", (req, res) => {
+  const message =
+    req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-    if (!message) return res.sendStatus(200);
+  if (!message) return res.sendStatus(200);
 
-    const from = message.from;
-    const text = message.text?.body?.toLowerCase();
+  const messageId = message.id;
 
-    console.log("📩 MESSAGE:", JSON.stringify(message, null, 2));
-
-    // STEP 1 — START
-    if (["hi", "hello", "start"].includes(text)) {
-      await sendWelcomeAndCategories(from);
-    }
-
-    // STEP 2 & 3 — LIST SELECTION
-    if (message.interactive?.list_reply) {
-      const id = message.interactive.list_reply.id;
-      console.log("🟡 LIST REPLY:", id);
-
-      if (id.startsWith("CAT_")) {
-        await sendCategoryOptions(from, id);
-      }
-
-      if (id.startsWith("OPT_")) {
-        await handleOptionSelection(from, id);
-      }
-    }
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ WEBHOOK ERROR:", err);
-    res.sendStatus(200);
+  // 🔒 DEDUPLICATION
+  if (processedMessageIds.has(messageId)) {
+    console.log("⏭️ Duplicate message ignored:", messageId);
+    return res.sendStatus(200);
   }
+
+  processedMessageIds.add(messageId);
+
+  // 🔁 AUTO CLEANUP (memory safe)
+  setTimeout(() => {
+    processedMessageIds.delete(messageId);
+  }, 5 * 60 * 1000); // 5 min
+
+  // ✅ ACK IMMEDIATELY
+  res.sendStatus(200);
+
+  // 🚀 BACKGROUND PROCESSING
+  (async () => {
+    try {
+      const from = message.from;
+      const text = message.text?.body?.toLowerCase();
+
+      console.log("📩 MESSAGE:", JSON.stringify(message, null, 2));
+
+      // STEP 1 — START
+      if (["hi", "hello", "start"].includes(text)) {
+        await sendWelcomeAndCategories(from);
+      }
+
+      // STEP 2 & 3 — LIST SELECTION
+      if (message.interactive?.list_reply) {
+        const id = message.interactive.list_reply.id;
+        console.log("🟡 LIST REPLY:", id);
+
+        if (id.startsWith("CAT_")) {
+          await sendCategoryOptions(from, id);
+        }
+
+        if (id.startsWith("OPT_")) {
+          await handleOptionSelection(from, id);
+        }
+      }
+    } catch (err) {
+      console.error("❌ ASYNC WEBHOOK ERROR:", err);
+    }
+  })();
 });
+
 
 // ================= WHATSAPP SEND =================
 async function sendWhatsApp(payload) {

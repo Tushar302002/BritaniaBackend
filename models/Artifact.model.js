@@ -18,7 +18,7 @@ const artifactSchema = new mongoose.Schema({
 
   generatedImageUrl: {
     type: String,
-    required: true
+    required: false
   },
 
   aiPrompt: {
