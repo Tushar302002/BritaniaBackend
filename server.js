@@ -8,6 +8,7 @@ import path from "path";
 
 import Artifact from "./models/Artifact.model.js";
 import { generateImage } from "./services/imageGenerator.service.js";
+import { uploadImage } from "../server_withoutWhatsapp/services/cloudFileUpload.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -82,8 +83,8 @@ app.get("/api/artifacts", async (req, res) => {
     const skip = chunkIndex * limit;
 
     const query = snapshotId
-    ? { _id: { $lte: snapshotId } }
-    : {};
+      ? { _id: { $lte: snapshotId } }
+      : {};
 
 
     const artifacts = await Artifact.find(query)
@@ -374,12 +375,16 @@ async function handleOptionSelection(user, optionId) {
   const generatedImageUrl = saveBase64Image(aiData.base64);
   const mediaId = await uploadImageToWhatsApp(aiData.base64);
 
+  const absolutePath = path.join(process.cwd(), generatedImageUrl);
+  const cloudFilePath = await uploadImage("files", absolutePath);
+
   const artifact = await Artifact.create({
     source: "whatsapp",
     userPrompt: prompt,
     aiPrompt: aiData.aiPrompt,
     aiProvider: "openai",
-    generatedImageUrl
+    // generatedImageUrl:generatedImageUrl,
+    generatedImageUrl: cloudFilePath.secure_url,
   });
 
   await sendWhatsApp({
