@@ -39,6 +39,70 @@ mongoose
 
 
 // ================= REST APIs =================
+
+// Consumed by Museum
+app.get("/api/artifacts/snapshot", async (req, res) => {
+  try {
+    const latest = await Artifact
+      .findOne()
+      .sort({ _id: -1 })
+      .select("_id");
+
+    const total = await Artifact.countDocuments();
+
+    res.json({
+      snapshotId: latest?._id || null,
+      total
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Snapshot failed" });
+  }
+});
+
+
+// Consumed by Museum
+app.get("/api/artifacts/count", async (req, res) => {
+  try {
+    const total = await Artifact.countDocuments();
+    res.json({ total });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+// Consumed by Museum
+app.get("/api/artifacts", async (req, res) => {
+  try {
+    const chunkIndex = parseInt(req.query.chunkIndex || "0");
+    const limit = parseInt(req.query.limit || "40");
+    const snapshotId = req.query.snapshotId;
+
+    const skip = chunkIndex * limit;
+
+    const query = snapshotId
+    ? { _id: { $lte: snapshotId } }
+    : {};
+
+
+    const artifacts = await Artifact.find(query)
+      .sort({ _id: 1 })       // IMPORTANT: stable order
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({
+      chunkIndex,
+      count: artifacts.length,
+      items: artifacts
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 app.get("/api/artifacts/:id", async (req, res) => {
   try {
     const data = await Artifact.findById(req.params.id);
