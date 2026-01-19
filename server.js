@@ -8,7 +8,7 @@ import path from "path";
 
 import Artifact from "./models/Artifact.model.js";
 import { generateImage } from "./services/imageGenerator.service.js";
-import { uploadImage } from "../server_withoutWhatsapp/services/cloudFileUpload.js";
+import { uploadImage } from "./services/cloudFileUpload.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
