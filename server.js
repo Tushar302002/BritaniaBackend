@@ -398,4 +398,15 @@ async function handleOptionSelection(user, optionId) {
         `${process.env.AR_FRONTEND_URL}/?arId=${artifact._id}`
     }
   });
+
+  await sendWhatsApp({
+    messaging_product: "whatsapp",
+    to: user,
+    text: {
+      body:
+        "✨ Let's have a Museum Journey where you can see your and other artifacts!\n\n" +
+        `${process.env.MUSEUM_URL}`
+    }
+  });
+
 }
